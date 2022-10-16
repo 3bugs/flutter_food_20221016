@@ -1,11 +1,6 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_food_20221016/models/food_item.dart';
-import 'package:http/http.dart' as http;
-
-const apiBaseUrl = 'https://cpsu-test-api.herokuapp.com';
-const apiGetFoods = '$apiBaseUrl/foods';
+import 'package:flutter_food_20221016/services/api.dart';
 
 class FoodListPage extends StatefulWidget {
   const FoodListPage({Key? key}) : super(key: key);
@@ -17,6 +12,13 @@ class FoodListPage extends StatefulWidget {
 class _FoodListPageState extends State<FoodListPage> {
   List<FoodItem>? _foodList;
   var _isLoading = false;
+  String? _errMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchFoodData();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,13 +26,13 @@ class _FoodListPageState extends State<FoodListPage> {
       appBar: AppBar(title: const Text('FOOD LIST')),
       body: Column(
         children: [
-          Container(
+          /*Container(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: _handleClickButton,
+              onPressed: _fetchFoodData,
               child: const Text('GET FOOD DATA'),
             ),
-          ),
+          ),*/
           Expanded(
             child: Stack(
               children: [
@@ -41,6 +43,24 @@ class _FoodListPageState extends State<FoodListPage> {
                   ),
                 if (_isLoading)
                   const Center(child: CircularProgressIndicator()),
+                if (_errMessage != null && !_isLoading)
+                  Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(24.0),
+                          child: Text(_errMessage!),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            _fetchFoodData();
+                          },
+                          child: const Text('RETRY'),
+                        )
+                      ],
+                    ),
+                  ),
               ],
             ),
           ),
@@ -49,33 +69,25 @@ class _FoodListPageState extends State<FoodListPage> {
     );
   }
 
-  void _handleClickButton() async {
+  void _fetchFoodData() async {
     setState(() {
-      //_foodList = null;
       _isLoading = true;
     });
 
-    var response = await http.get(Uri.parse(apiGetFoods));
-    print(response.statusCode);
-    print(response.body);
-    var output = jsonDecode(response.body);
-    print(output['status']);
-    print(output['message']);
-
-    setState(() {
-      _foodList = [];
-      output['data'].forEach((item) {
-        print(item['name'] + ' ราคา ' + item['price'].toString());
-        var foodItem = FoodItem(
-          id: item['id'],
-          name: item['name'],
-          price: item['price'],
-          image: item['image'],
-        );
-        _foodList!.add(foodItem);
+    try {
+      var data = await Api().fetch('foods');
+      setState(() {
+        _foodList = data
+            .map<FoodItem>((item) => FoodItem.fromJson(item))
+            .toList();
+        _isLoading = false;
       });
-      _isLoading = false;
-    });
+    } catch (e) {
+      setState(() {
+        _errMessage = e.toString();
+        _isLoading = false;
+      });
+    }
   }
 
   Widget _buildListItem(BuildContext context, int index) {
