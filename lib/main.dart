@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_food_20221016/pages/counter/counter_page.dart';
 import 'package:flutter_food_20221016/pages/food_list/food_list_page.dart';
 
 void main() {
